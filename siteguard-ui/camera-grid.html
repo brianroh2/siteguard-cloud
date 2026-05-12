@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SiteGuard 카메라 그리드</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #0f1117; color: #ddd; font-family: 'Segoe UI', Arial, sans-serif; }
+#app { display: flex; flex-direction: column; height: 100%; }
+#topbar { display: flex; align-items: center; justify-content: space-between; padding: 5px 10px; background: #161b2e; border-bottom: 1px solid #2a2a4a; flex-shrink: 0; min-height: 36px; }
+#topbar-left { display: flex; align-items: center; gap: 10px; }
+#topbar-title { font-size: 13px; color: #4db6ac; font-weight: 600; }
+#grid-btns { display: flex; gap: 3px; flex-wrap: wrap; }
+.gbtn { background: #1e2340; border: 1px solid #3a3a5a; color: #aaa; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; transition: all 0.15s; }
+.gbtn:hover { background: #2a3060; color: #ccc; }
+.gbtn.act { background: #4db6ac; color: #000; border-color: #4db6ac; font-weight: 600; }
+#content { display: flex; flex: 1; overflow: hidden; }
+#grid-area { flex: 1; display: grid; gap: 3px; padding: 3px; overflow: hidden; }
+.cell { position: relative; background: #111; border: 1px solid #2a2a4a; border-radius: 3px; overflow: hidden; }
+.cell iframe { width: 100%; height: 100%; border: none; display: block; }
+.cell-bar { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); padding: 2px 6px; font-size: 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+.cell-bar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%; }
+.cell-maxbtn { pointer-events: all; background: none; border: none; color: #ccc; cursor: pointer; font-size: 13px; padding: 0 3px; line-height: 1; }
+.cell-maxbtn:hover { color: #4db6ac; }
+.cell-empty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #2a2a4a; font-size: 24px; }
+#side-panel { width: 145px; background: #161b2e; border-left: 1px solid #2a2a4a; padding: 8px; overflow-y: auto; flex-shrink: 0; }
+.panel-title { font-size: 10px; color: #4db6ac; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.cam-item { margin-bottom: 8px; }
+.cam-item label { display: flex; align-items: flex-start; gap: 5px; cursor: pointer; font-size: 11px; line-height: 1.4; }
+.cam-item input[type=checkbox] { margin-top: 2px; cursor: pointer; accent-color: #4db6ac; }
+#fs-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 9999; }
+#fs-overlay iframe { width: 100%; height: 100%; border: none; }
+#fs-close { position: absolute; top: 8px; right: 8px; z-index: 10000; background: rgba(20,20,40,0.9); border: 1px solid #4db6ac; color: #4db6ac; padding: 5px 14px; cursor: pointer; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div id="topbar-left">
+      <span id="topbar-title">&#128249; 카메라 그리드</span>
+      <div id="grid-btns"></div>
+    </div>
+  </div>
+  <div id="content">
+    <div id="grid-area"></div>
+    <div id="side-panel">
+      <div class="panel-title">카메라 선택</div>
+      <div id="cam-list"></div>
+    </div>
+  </div>
+</div>
+<div id="fs-overlay">
+  <button id="fs-close" onclick="closeFs()">&#10005; 닫기</button>
+  <iframe id="fs-frame" src="" allowfullscreen></iframe>
+</div>
+
+<script>
+var GO2RTC = 'http://46.62.155.122/go2rtc';
+
+var CAMS = [
+  { id: 'cctv_1', label: 'CCTV-1 TVT Dome' },
+  { id: 'cctv_3', label: 'CCTV-3 VHT Dome F977' }
+];
+
+// 레이블 형식: 행×열
+var GRIDS = [
+  { l:'2×2', r:2, c:2 }, { l:'2×3', r:2, c:3 }, { l:'3×3', r:3, c:3 },
+  { l:'3×4', r:3, c:4 }, { l:'4×4', r:4, c:4 }, { l:'4×5', r:4, c:5 }
+];
+
+var grid = { r:2, c:2 };
+var sel = CAMS.map(function(c){ return c.id; });
+
+// MJPEG은 H264 소스와 호환 안됨 → MSE 모드 사용
+function streamUrl(id) { return GO2RTC + '/stream.html?src=' + id + '&mode=mse'; }
+
+function renderGridBtns() {
+  var el = document.getElementById('grid-btns');
+  el.innerHTML = '';
+  GRIDS.forEach(function(g) {
+    var btn = document.createElement('button');
+    btn.className = 'gbtn' + (g.r === grid.r && g.c === grid.c ? ' act' : '');
+    btn.textContent = g.l;
+    btn.onclick = (function(gr, gc) {
+      return function() { grid = {r:gr, c:gc}; renderGridBtns(); renderGrid(); };
+    })(g.r, g.c);
+    el.appendChild(btn);
+  });
+}
+
+function renderCamList() {
+  var el = document.getElementById('cam-list');
+  el.innerHTML = '';
+  CAMS.forEach(function(cam) {
+    var item = document.createElement('div');
+    item.className = 'cam-item';
+    var checked = sel.indexOf(cam.id) >= 0 ? 'checked' : '';
+    item.innerHTML = '<label><input type="checkbox" ' + checked +
+      ' data-id="' + cam.id + '"> ' + cam.label + '</label>';
+    el.appendChild(item);
+  });
+  el.querySelectorAll('input[type=checkbox]').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var id = this.getAttribute('data-id');
+      if (this.checked && sel.indexOf(id) < 0) sel.push(id);
+      else if (!this.checked) sel = sel.filter(function(c){ return c !== id; });
+      renderGrid();
+    });
+  });
+}
+
+function renderGrid() {
+  var area = document.getElementById('grid-area');
+  area.innerHTML = '';
+  area.style.gridTemplateColumns = 'repeat(' + grid.c + ',1fr)';
+  area.style.gridTemplateRows = 'repeat(' + grid.r + ',1fr)';
+  var active = CAMS.filter(function(c){ return sel.indexOf(c.id) >= 0; });
+  var total = grid.c * grid.r;
+  for (var i = 0; i < total; i++) {
+    var cell = document.createElement('div');
+    cell.className = 'cell';
+    if (i < active.length) {
+      var cam = active[i];
+      var camId = cam.id;
+      var camLabel = cam.label;
+      var url = streamUrl(camId);
+      cell.innerHTML =
+        '<iframe src="' + url + '" allowfullscreen></iframe>' +
+        '<div class="cell-bar">' +
+          '<span>' + camLabel + '</span>' +
+          '<button class="cell-maxbtn" data-id="' + camId + '" title="최대화">&#x26F6;</button>' +
+        '</div>';
+    } else {
+      cell.innerHTML = '<div class="cell-empty">&#9646;</div>';
+    }
+    area.appendChild(cell);
+  }
+  area.querySelectorAll('.cell-maxbtn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      openFs(this.getAttribute('data-id'));
+    });
+  });
+}
+
+function openFs(camId) {
+  document.getElementById('fs-frame').src = streamUrl(camId);
+  document.getElementById('fs-overlay').style.display = 'block';
+}
+
+function closeFs() {
+  document.getElementById('fs-overlay').style.display = 'none';
+  document.getElementById('fs-frame').src = '';
+}
+
+renderGridBtns();
+renderCamList();
+renderGrid();
+</script>
+</body>
+</html>

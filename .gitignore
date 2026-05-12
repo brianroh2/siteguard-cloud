@@ -1,0 +1,34 @@
+# ── Frigate 민감 정보 ──────────────────────────
+frigate/config/.jwt_secret
+frigate/config/notifications.pem
+frigate/config/.exports
+
+# ── Thingsboard 데이터 ─────────────────────────
+thingsboard/data/
+
+# ── 로그 파일 ──────────────────────────────────
+**/*.log
+
+# ── Claude 설정 ────────────────────────────────
+**/.claude/
+!.claude/
+!.claude/settings.json
+!.claude/hooks/
+!.claude/hooks/*.py
+.claude/settings.local.json
+
+# ── 가상환경 ───────────────────────────────────
+thingsboard/.venv/
+
+# ── 임시 작업 폴더 ─────────────────────────────
+temp/
+
+# ── Frontend 빌드/의존성 ───────────────────────
+app/frontend/node_modules/
+app/frontend/.next/
+
+# ── 환경변수 (민감정보) ────────────────────────
+app/frontend/.env.local
+
+# Python 캐시
+**/__pycache__/

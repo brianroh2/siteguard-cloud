@@ -1,0 +1,25 @@
+{
+  "folders": [
+    {
+      "name": "frigate (VMS)",
+      "path": "frigate"
+    },
+    {
+      "name": "thingsboard (Fleet)",
+      "path": "thingsboard"
+    },
+    {
+      "name": "infra (docs)",
+      "path": "doc"
+    }
+  ],
+  "settings": {
+    "explorer.fileNesting.enabled": true,
+    "files.exclude": {
+      "**/data/db/**": true,
+      "**/data/logs/**": true,
+      "**/storage/recordings/**": true,
+      "**/storage/clips/**": true
+    }
+  }
+}

@@ -1,0 +1,10 @@
+services:
+  go2rtc:
+    image: alexxit/go2rtc:1.9.9
+    container_name: go2rtc
+    restart: unless-stopped
+    network_mode: host  # Tailscale 접근을 위해 host 네트워크 사용
+    volumes:
+      - ./go2rtc.yaml:/config/go2rtc.yaml
+    environment:
+      - TZ=Asia/Seoul

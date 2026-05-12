@@ -1,0 +1,19 @@
+services:
+  thingsboard:
+    container_name: thingsboard
+    image: thingsboard/tb-postgres:4.2.1.1
+    restart: unless-stopped
+    ports:
+      - "8080:9090"   # 웹 UI (호스트 8080 → 컨테이너 9090)
+      - "1884:1883"   # MQTT (frigate mqtt 1883과 충돌 방지 → 1884)
+      - "7070:7070"   # Edge RPC
+      # - "5683-5688:5683-5688/udp"  # CoAP (미사용 — 이동형 CCTV 시나리오에 불필요)
+    environment:
+      TB_QUEUE_TYPE: in-memory  # 개발·테스트용 (운영 시 Kafka 권장)
+    volumes:
+      - ./data/db:/var/lib/thingsboard/data    # DB 데이터 영속화
+      - ./data/logs:/var/log/thingsboard       # 로그 영속화
+    # 초기 기동 시 DB 초기화로 1~2분 소요
+    # 기본 계정:
+    #   시스템 관리자: sysadmin@thingsboard.org / sysadmin
+    #   테넌트 관리자: tenant@thingsboard.org   / tenant

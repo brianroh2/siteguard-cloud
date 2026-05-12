@@ -1,0 +1,134 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   SiteGuard Design Tokens
+   Primary: #0057FF (Blue)  ← v0의 분홍 #D97878 전면 교체
+   Sidebar: #0F1A2E (Dark Navy)
+   ============================================ */
+:root {
+  /* 배경 */
+  --background: oklch(0.97 0.003 240);        /* 밝은 청회색 배경 */
+  --foreground: oklch(0.15 0.01 240);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.01 240);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.01 240);
+
+  /* Primary → #0057FF 파랑 */
+  --primary: oklch(0.45 0.22 260);
+  --primary-foreground: oklch(0.985 0 0);
+
+  /* Secondary → 연파랑 */
+  --secondary: oklch(0.93 0.03 260);
+  --secondary-foreground: oklch(0.15 0.01 240);
+
+  --muted: oklch(0.95 0.005 240);
+  --muted-foreground: oklch(0.52 0.01 240);
+
+  --accent: oklch(0.93 0.03 260);
+  --accent-foreground: oklch(0.45 0.22 260);
+
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+
+  --border: oklch(0.90 0.005 240);
+  --input: oklch(0.96 0.003 240);
+  --ring: oklch(0.45 0.22 260);
+
+  /* 차트 */
+  --chart-1: oklch(0.45 0.22 260);   /* 파랑 */
+  --chart-2: oklch(0.55 0.15 160);   /* 청록 */
+  --chart-3: oklch(0.65 0.18 80);    /* 황록 */
+  --chart-4: oklch(0.60 0.20 30);    /* 주황 */
+  --chart-5: oklch(0.55 0.22 0);     /* 빨강 */
+
+  --radius: 0.5rem;
+
+  /* 사이드바 — #0F1A2E 다크 네이비 */
+  --sidebar: oklch(0.14 0.03 250);
+  --sidebar-foreground: oklch(0.85 0.02 240);
+  --sidebar-primary: oklch(0.45 0.22 260);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.20 0.04 250);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.25 0.02 250);
+  --sidebar-ring: oklch(0.45 0.22 260);
+
+  /* SiteGuard 전용 변수 */
+  --sg-primary: #0057FF;
+  --sg-primary-dark: #0040CC;
+  --sg-primary-light: #E8F0FF;
+  --sg-sidebar: #0F1A2E;
+  --sg-sidebar-hover: #1A2D4A;
+  --sg-sidebar-active: #0057FF;
+  --sg-status-online: #10B981;
+  --sg-status-warning: #F59E0B;
+  --sg-status-offline: #94A3B8;
+  --sg-status-error: #EF4444;
+  --sg-font-base: 14px;
+  --sg-row-height: 44px;
+}
+
+@theme inline {
+  --font-sans: 'Pretendard', 'Noto Sans KR', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-size: var(--sg-font-base);
+  }
+}
+
+/* 상태 뱃지 공통 */
+.sg-badge-online  { background:#ECFDF5; color:#059669; }
+.sg-badge-warning { background:#FFFBEB; color:#D97706; }
+.sg-badge-offline { background:#F1F5F9; color:#64748B; }
+.sg-badge-error   { background:#FEF2F2; color:#DC2626; }
+.sg-badge-ai-on   { background:#E8F0FF; color:#0057FF; }
+.sg-badge-ai-off  { background:#F1F5F9; color:#94A3B8; }

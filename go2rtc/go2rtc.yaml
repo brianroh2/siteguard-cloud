@@ -1,0 +1,36 @@
+api:
+  listen: ":1984"  # go2rtc Web UI 및 API 포트
+
+rtsp:
+  listen: ":8555"  # 클라우드 RTSP 재스트리밍 포트
+
+streams:
+  # ── LTE 현장 카메라 설정 ────────────────────────────────────────────
+  # DDNS: 0004312.ddns.m2mnet.kr (M2MNet LT7 자체 DDNS, LTE 공인IP 자동갱신)
+  # 포트포워딩: LT7에서 카메라별 WAN 포트 분리 (CCTV-1=554, CCTV-3=555 ...)
+  # exec:ffmpeg 패턴 필수 이유:
+  #   - -rtsp_transport tcp : LTE NAT 환경에서 UDP RTP 역방향 차단 우회
+  #   - -f mpegts           : 제조사별 비트스트림 포맷 차이 흡수 (Annex B 아님)
+  # 신규 카메라 추가 시 이 패턴을 기본 템플릿으로 사용할 것
+  # ────────────────────────────────────────────────────────────────────
+
+  # CCTV-1: TVT Dome (192.168.1.51) — WAN:554, profile2=sub(640×480,10fps)
+  # ⚠️ 보안: 비밀번호 변경 필요
+  cctv_1: exec:ffmpeg -hide_banner -rtsp_transport tcp -i rtsp://admin:11qqaa..A@0004312.m2mnet.kr:554/profile2 -c:v copy -f mpegts -
+
+  # CCTV-3: Vision Hitech Dome F977 (192.168.1.53) — WAN:555, Ch2=sub(640×480,10fps)
+  cctv_3: exec:ffmpeg -hide_banner -rtsp_transport tcp -i rtsp://admin:11qqaa..@0004312.m2mnet.kr:555/Ch2 -c:v copy -f mpegts -
+
+  # 향후 추가 규칙:
+  # CCTV-4: WAN:556 → 192.168.1.54:554
+  # cctv_4: exec:ffmpeg -hide_banner -rtsp_transport tcp -i rtsp://admin:pw@0004312.m2mnet.kr:556/profile1 -c:v copy -f mpegts -
+
+webrtc:
+  listen: ":8555"  # WebRTC 미디어 UDP 포트 (RTSP TCP와 공유, 외부 방화벽에서 UDP 8555 개방 필요)
+  ice_servers:
+    - urls: [stun:stun.cloudflare.com:3478]
+  candidates:
+    - 46.62.155.122  # Hetzner 공인 IP — 외부 ICE candidate 명시
+
+log:
+  level: info

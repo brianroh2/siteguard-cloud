@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /root/projects/siteguard-infra/.claude/hooks/post_patch.py",
+            "timeout": 130
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /root/projects/siteguard-infra/.claude/hooks/post_ui_edit.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

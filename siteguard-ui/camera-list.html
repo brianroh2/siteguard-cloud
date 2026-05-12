@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SiteGuard 카메라 목록</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f1117; color: #ccc; font-size: 13px; }
+#app { display: flex; flex-direction: column; height: 100vh; padding: 14px 16px; }
+
+/* 헤더 */
+#header { display: flex; align-items: center; margin-bottom: 12px; flex-shrink: 0; gap: 12px; }
+#header h1 { color: #4db6ac; font-size: 15px; font-weight: 600; }
+#summary { font-size: 11px; color: #888; }
+#summary .ok  { color: #4caf50; }
+#summary .err { color: #f44336; }
+
+/* 필터 바 */
+#filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; flex-shrink: 0; align-items: center; }
+select {
+  background: #1a1a2e; color: #ccc; border: 1px solid #2a2a4a;
+  padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer;
+}
+select:focus { outline: none; border-color: #4db6ac; }
+#filter-bar .spacer { flex: 1; }
+.btn-reg {
+  background: #1a3a4a; color: #4db6ac; border: 1px solid #2a5a6a;
+  padding: 5px 14px; border-radius: 4px; font-size: 11px; cursor: pointer;
+}
+.btn-reg:hover { background: #1e4a5e; }
+
+/* 테이블 */
+#table-wrap { flex: 1; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  color: #888; font-weight: 500; padding: 8px 10px;
+  border-bottom: 1px solid #2a2a4a; text-align: left;
+  font-size: 11px; letter-spacing: .3px;
+  position: sticky; top: 0; background: #0f1117; z-index: 1;
+}
+td { padding: 9px 10px; border-bottom: 1px solid #171724; vertical-align: middle; }
+tr:hover td { background: #141422; }
+
+.cam-name { color: #4db6ac; font-weight: 500; cursor: pointer; }
+.cam-name:hover { text-decoration: underline; }
+
+.badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+.b-on   { background: #1a3a1a; color: #4caf50; }
+.b-off  { background: #2a1a1a; color: #888; }
+.b-ok   { background: #1a3a1a; color: #4caf50; }
+.b-warn { background: #3a2a00; color: #ffb300; }
+.b-full { background: #3a1a1a; color: #f44336; }
+
+.btn-gear {
+  background: none; border: 1px solid transparent; font-size: 17px;
+  cursor: pointer; padding: 3px 6px; border-radius: 4px; line-height: 1;
+}
+.btn-gear:hover { border-color: #2a3a4a; background: #1a2a3a; }
+
+.status-ok  { color: #4caf50; font-size: 13px; }
+.status-err { color: #f44336; font-size: 13px; }
+.status-off { color: #888; font-size: 13px; }
+
+.placeholder { color: #888; text-align: center; padding: 32px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>📷 SiteGuard 카메라 관제</h1>
+    <span id="summary">로딩 중...</span>
+  </div>
+
+  <div id="filter-bar">
+    <select id="f-group"    onchange="applyFilters()"><option value="">그룹: 전체</option></select>
+    <select id="f-customer" onchange="applyFilters()"><option value="">가입자: 전체</option></select>
+    <select id="f-type"     onchange="applyFilters()">
+      <option value="">유형: 전체</option>
+      <option>Dome</option><option>Bullet</option><option>기타</option>
+    </select>
+    <select id="f-live" onchange="applyFilters()">
+      <option value="">라이브: 전체</option>
+      <option value="on">ON</option><option value="off">OFF</option>
+    </select>
+    <select id="f-sd" onchange="applyFilters()">
+      <option value="">SD: 전체</option>
+      <option>정상</option><option>경고</option><option>가득참</option>
+    </select>
+    <span class="spacer"></span>
+    <button class="btn-reg" onclick="alert('카메라 등록 — Phase E 예정')">+ 카메라 등록</button>
+  </div>
+
+  <div id="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:36px;text-align:center;">상태</th>
+          <th>카메라명</th>
+          <th>그룹</th>
+          <th>가입자</th>
+          <th>MAC / IP</th>
+          <th style="text-align:center;">라이브</th>
+          <th>SD 상태</th>
+          <th style="text-align:center;">감지</th>
+          <th style="width:40px;"></th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="9" class="placeholder">📡 카메라 목록 로딩 중...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// TB 4.x localStorage 키: 'TB-' 접두어 사용
+const token = localStorage.getItem('jwt_token') ||
+              localStorage.getItem('TB-jwt_token') ||
+              localStorage.getItem('tb_ui_token');
+
+async function api(path) {
+  if (!token) throw new Error('로그인 필요');
+  const r = await fetch(path, {
+    headers: { 'X-Authorization': `Bearer ${token}` }
+  });
+  if (r.status === 401) throw new Error('세션 만료 — TB 재로그인 필요');
+  if (!r.ok) throw new Error(`API 오류 ${r.status}`);
+  return r.json();
+}
+
+function sdInfo(used, total) {
+  if (!total) return { text: '— GB', cls: '', tag: '' };
+  const pct = used / total;
+  const text = `${used} / ${total} GB`;
+  if (pct >= 0.9) return { text, cls: 'b-full', tag: '가득참' };
+  if (pct >= 0.7) return { text, cls: 'b-warn', tag: '경고' };
+  return { text, cls: 'b-ok', tag: '정상' };
+}
+
+function rowHtml(dev, a) {
+  const sd = sdInfo(a.sd_used_gb || 0, a.sd_total_gb || 0);
+  const isOn  = a.frigate_enabled !== false;
+  const mac   = a.mac_address || '—';
+  const ip    = a.internal_ip || '—';
+  const name  = dev.name;
+  const id    = dev.id.id;
+
+  return `<tr data-id="${id}"
+      data-group="${a.group || ''}" data-customer="${a.customer || ''}"
+      data-type="${a.cam_type || ''}" data-sd="${sd.tag}">
+    <td style="text-align:center"><span class="status-ok" title="정상">●</span></td>
+    <td><span class="cam-name" onclick="openDetail('${id}')">${name}</span></td>
+    <td>${a.group || '—'}</td>
+    <td>${a.customer || '—'}</td>
+    <td style="font-size:11px;line-height:1.7">${mac}<br><span style="color:#888">${ip}</span></td>
+    <td style="text-align:center"><span class="badge b-on">ON ●</span></td>
+    <td>${sd.cls ? `<span class="badge ${sd.cls}">${sd.text}</span>` : '<span style="color:#888">— GB</span>'}</td>
+    <td style="text-align:center">
+      <span class="badge ${isOn ? 'b-on' : 'b-off'}">${isOn ? 'ON ●' : 'OFF ○'}</span>
+    </td>
+    <td style="text-align:center">
+      <button class="btn-gear" onclick="openDetail('${id}')" title="카메라 상세 설정">⚙️</button>
+    </td>
+  </tr>`;
+}
+
+function addFilterOption(selId, val) {
+  if (!val) return;
+  const sel = document.getElementById(selId);
+  if ([...sel.options].some(o => o.value === val)) return;
+  const opt = document.createElement('option');
+  opt.value = opt.textContent = val;
+  sel.appendChild(opt);
+}
+
+function applyFilters() {
+  const fg = document.getElementById('f-group').value;
+  const fc = document.getElementById('f-customer').value;
+  const ft = document.getElementById('f-type').value;
+  const fl = document.getElementById('f-live').value;
+  const fs = document.getElementById('f-sd').value;
+  document.querySelectorAll('#tbody tr[data-id]').forEach(tr => {
+    const ok = (!fg || tr.dataset.group    === fg) &&
+               (!fc || tr.dataset.customer === fc) &&
+               (!ft || tr.dataset.type     === ft) &&
+               (!fs || tr.dataset.sd       === fs);
+    tr.style.display = ok ? '' : 'none';
+  });
+}
+
+function openDetail(deviceId) {
+  const url = `/camera-detail.html?id=${deviceId}`;
+  // iframe 내부에서 호출되면 상위 페이지 전체를 이동
+  (window !== window.top ? window.top : window).location.href = url;
+}
+
+function updateSummary(total, ok) {
+  document.getElementById('summary').innerHTML =
+    `&nbsp;전체 ${total}대 &nbsp;|&nbsp; ` +
+    `<span class="ok">● 정상 ${ok}</span> &nbsp;|&nbsp; ` +
+    `<span class="err">● 오류 ${total - ok}</span>`;
+}
+
+async function load() {
+  const tbody = document.getElementById('tbody');
+  if (!token) {
+    tbody.innerHTML = '<tr><td colspan="9" class="placeholder" style="color:#f44336">⚠️ TB 로그인 후 이용하세요</td></tr>';
+    return;
+  }
+  try {
+    const data    = await api('/api/tenant/devices?pageSize=100&page=0');
+    const devices = data.data || [];
+
+    let html = '';
+    let camCnt = 0;
+
+    for (const dev of devices) {
+      const attrArr = await api(`/api/plugins/telemetry/DEVICE/${dev.id.id}/values/attributes/SERVER_SCOPE`);
+      const a = {};
+      attrArr.forEach(x => a[x.key] = x.value);
+      if (!a.cam_type && !a.stream_url) continue;   // 비카메라 기기 제외
+      camCnt++;
+      html += rowHtml(dev, a);
+      addFilterOption('f-group',    a.group);
+      addFilterOption('f-customer', a.customer);
+    }
+
+    tbody.innerHTML = html || '<tr><td colspan="9" class="placeholder">등록된 카메라가 없습니다</td></tr>';
+    updateSummary(camCnt, camCnt);
+
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="9" class="placeholder" style="color:#f44336">⚠️ ${e.message}</td></tr>`;
+    document.getElementById('summary').textContent = '로드 실패';
+  }
+}
+
+load();
+</script>
+</body>
+</html>
