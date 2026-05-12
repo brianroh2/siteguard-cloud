@@ -75,6 +75,7 @@ docker ps --format 'table {{.Names}}\t{{.Status}}'
 다음 상황에서는 **반드시 중단하고 확인 요청:**
 
 - `git push` / `git push --force` 실행 전
+- INTERFACE.md의 항목(MQTT 토픽·속성명·RPC 명령·카메라 기기명)을 변경하려 할 때 → siteguard-edge 레포 동시 반영 필요
 - `docker rm`, `docker rmi`, 볼륨 삭제 등 복구 불가 작업
 - TB 서비스가 재시작 후 3분 내 200 응답 안 할 때
 - 에지 PC 대상 스크립트를 Hetzner에서 직접 실행하려 할 때
@@ -92,3 +93,4 @@ docker ps --format 'table {{.Names}}\t{{.Status}}'
 | 카메라 UI 설계 의도 | `doc/camera-management-ui-design.md` |
 | 현재 기기 목록·속성 | `thingsboard/scripts/tb_siteguard_full_setup.py` > `CAMERAS` |
 | 에지 레이어 작업 | `siteguard-edge` 레포 |
+| Cloud ↔ Edge 접점 명세 | `INTERFACE.md` (양쪽 레포 동일 파일 유지) |
